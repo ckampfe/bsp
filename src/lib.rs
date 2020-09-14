@@ -330,7 +330,7 @@ impl Triangle {
                 let p1p2i = ray_to_plane_intersection(&(p1, p2), &plane.normal(), &plane.points()[0]);
 
                 let front_triangle_1 = Triangle::new(vec![p0, p1, p0p2i], self.normal());
-                let front_triangle_2 = Triangle::new(vec![p0, p1p2i, p0p2i], self.normal());
+                let front_triangle_2 = Triangle::new(vec![p1, p1p2i, p0p2i], self.normal());
 
                 let behind_triangle = Triangle::new(vec![p2, p0p2i, p1p2i], self.normal());
 
@@ -554,7 +554,7 @@ mod tests {
                 Vector3::new(0.0, 0.0, 1.0),
             ),
             Triangle::new(
-                vec![front_points[0], front_points[3], front_points[2]],
+                vec![front_points[1], front_points[3], front_points[2]],
                 Vector3::new(0.0, 0.0, 1.0),
             ),
         ];
