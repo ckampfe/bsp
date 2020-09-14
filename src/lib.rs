@@ -16,19 +16,19 @@ impl BSPTree {
 
         // initial node!
         let partition_return = partition(triangles);
-        let i = nodes.len();
+        let this_node_id = nodes.len();
 
         if !partition_return.front.is_empty() {
             triangles_queue.push_back(NodeAction::Front {
                 triangles: partition_return.front,
-                node_index: i,
+                parent_node_index: this_node_id,
             });
         }
 
         if !partition_return.behind.is_empty() {
             triangles_queue.push_back(NodeAction::Behind {
                 triangles: partition_return.behind,
-                node_index: i,
+                parent_node_index: this_node_id,
             });
         }
         nodes.push(partition_return.node);
@@ -38,58 +38,98 @@ impl BSPTree {
             match node_action {
                 NodeAction::Front {
                     triangles,
-                    node_index,
+                    parent_node_index,
                 } => {
-                    let nodes_len = nodes.len();
-                    if let Some(last_node) = nodes.get_mut(node_index) {
-                        last_node.node_in_front = Some(nodes_len)
+                    if triangles.len() == 1 {
+                        let node = Node {
+                            triangles,
+                            node_behind: None,
+                            node_in_front: None,
+                        };
+
+                        nodes.push(node);
+
+                        let this_node_id = nodes.len() - 1;
+
+                        if let Some(parent_node) = nodes.get_mut(parent_node_index) {
+                            parent_node.node_in_front = Some(this_node_id)
+                        }
+                    } else {
+                        let this_node_id = nodes.len();
+
+                        if let Some(parent_node) = nodes.get_mut(parent_node_index) {
+                            parent_node.node_in_front = Some(this_node_id)
+                        }
+
+                        let PartitionReturn {
+                            node,
+                            front,
+                            behind,
+                        } = partition(triangles);
+
+                        if !front.is_empty() {
+                            triangles_queue.push_back(NodeAction::Front {
+                                triangles: front,
+                                parent_node_index: this_node_id,
+                            });
+                        }
+
+                        if !behind.is_empty() {
+                            triangles_queue.push_back(NodeAction::Behind {
+                                triangles: behind,
+                                parent_node_index: this_node_id,
+                            });
+                        }
+
+                        nodes.push(node);
                     }
-
-                    let partition_return = partition(triangles);
-                    let i = nodes.len();
-
-                    if !partition_return.front.is_empty() {
-                        triangles_queue.push_back(NodeAction::Front {
-                            triangles: partition_return.front,
-                            node_index: i,
-                        });
-                    }
-
-                    if !partition_return.behind.is_empty() {
-                        triangles_queue.push_back(NodeAction::Behind {
-                            triangles: partition_return.behind,
-                            node_index: i,
-                        });
-                    }
-
-                    nodes.push(partition_return.node);
                 }
                 NodeAction::Behind {
                     triangles,
-                    node_index,
+                    parent_node_index,
                 } => {
-                    let nodes_len = nodes.len();
-                    if let Some(last_node) = nodes.get_mut(node_index) {
-                        last_node.node_behind = Some(nodes_len)
-                    }
+                    if triangles.len() == 1 {
+                        let node = Node {
+                            triangles,
+                            node_behind: None,
+                            node_in_front: None,
+                        };
 
-                    let partition_return = partition(triangles);
-                    let i = nodes.len();
+                        nodes.push(node);
 
-                    if !partition_return.front.is_empty() {
-                        triangles_queue.push_back(NodeAction::Front {
-                            triangles: partition_return.front,
-                            node_index: i,
-                        });
-                    }
+                        let this_node_id = nodes.len() - 1;
 
-                    if !partition_return.behind.is_empty() {
-                        triangles_queue.push_back(NodeAction::Behind {
-                            triangles: partition_return.behind,
-                            node_index: i,
-                        });
+                        if let Some(parent_node) = nodes.get_mut(parent_node_index) {
+                            parent_node.node_behind = Some(this_node_id)
+                        }
+                    } else {
+                        let this_node_id = nodes.len();
+
+                        if let Some(parent_node) = nodes.get_mut(parent_node_index) {
+                            parent_node.node_behind = Some(this_node_id)
+                        }
+
+                        let PartitionReturn {
+                            node,
+                            front,
+                            behind,
+                        } = partition(triangles);
+
+                        if !front.is_empty() {
+                            triangles_queue.push_back(NodeAction::Front {
+                                triangles: front,
+                                parent_node_index: this_node_id,
+                            });
+                        }
+
+                        if !behind.is_empty() {
+                            triangles_queue.push_back(NodeAction::Behind {
+                                triangles: behind,
+                                parent_node_index: this_node_id,
+                            });
+                        }
+                        nodes.push(node);
                     }
-                    nodes.push(partition_return.node);
                 }
             }
         }
@@ -118,7 +158,9 @@ fn render(
             if let Some(behind) = node.node_behind {
                 render(&nodes[behind], nodes, vantage_point, triangles_buf);
             }
+
             triangles_buf.extend_from_slice(&node.triangles);
+
             if let Some(front) = node.node_in_front {
                 render(&nodes[front], nodes, vantage_point, triangles_buf);
             }
@@ -127,7 +169,9 @@ fn render(
             if let Some(front) = node.node_in_front {
                 render(&nodes[front], nodes, vantage_point, triangles_buf);
             }
+
             triangles_buf.extend_from_slice(&node.triangles);
+
             if let Some(behind) = node.node_behind {
                 render(&nodes[behind], nodes, vantage_point, triangles_buf);
             }
@@ -193,11 +237,11 @@ fn partition(triangles: Vec<Triangle>) -> PartitionReturn {
 enum NodeAction {
     Front {
         triangles: Vec<Triangle>,
-        node_index: usize,
+        parent_node_index: usize,
     },
     Behind {
         triangles: Vec<Triangle>,
-        node_index: usize,
+        parent_node_index: usize,
     },
 }
 
